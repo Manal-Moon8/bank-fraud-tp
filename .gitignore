@@ -1,0 +1,24 @@
+# SBT / Scala build
+target/
+project/target/
+project/project/
+.metals/
+.bsp/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Data (avoid pushing huge datasets)
+data/*.csv
+data/*.parquet
+data/*.jsonl
+data/*.zip
+
+# Keep small json configs if needed (uncomment if you WANT to commit them)
+# !data/errors.json
+# !data/mcc_codes.json
