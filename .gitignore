@@ -22,3 +22,4 @@ data/*.zip
 # Keep small json configs if needed (uncomment if you WANT to commit them)
 # !data/errors.json
 # !data/mcc_codes.json
+data/train_fraud_labels.json

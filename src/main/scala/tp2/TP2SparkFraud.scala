@@ -1,4 +1,4 @@
- package tp2
+package tp2
 
 import org.apache.spark.sql.{DataFrame, SparkSession, Column}
 import org.apache.spark.sql.functions._
@@ -77,8 +77,10 @@ object TP2SparkFraud {
 
     (codeColOpt, labelColOpt) match {
       case (Some(cc), Some(ll)) =>
-        mccDF.select(col(cc).cast("string").alias("mcc"),
-          col(ll).cast("string").alias("merchant_category")).distinct()
+        mccDF.select(
+          col(cc).cast("string").alias("mcc"),
+          col(ll).cast("string").alias("merchant_category")
+        ).distinct()
 
       case _ =>
         // Cas 2: wide (colonnes = "1711", "3000", ...)
@@ -97,10 +99,11 @@ object TP2SparkFraud {
 
   // Normalisation Errors (si fichier vide => DataFrame vide)
   private def normalizeErrors(errorsDF: DataFrame): DataFrame = {
+    val spark = errorsDF.sparkSession
+    import spark.implicits._
+
+    // Si le JSON est vide (0 colonnes), on renvoie DF vide correct
     if (errorsDF.columns.isEmpty) {
-      // DataFrame vide (0 colonnes)
-      val spark = errorsDF.sparkSession
-      import spark.implicits._
       return spark.emptyDataset[(String, String)]
         .toDF("error_code", "error_label")
     }
@@ -110,16 +113,20 @@ object TP2SparkFraud {
 
     (codeColOpt, labelColOpt) match {
       case (Some(cc), Some(ll)) =>
-        errorsDF.select(col(cc).cast("string").alias("error_code"),
-          col(ll).cast("string").alias("error_label")).distinct()
+        errorsDF.select(
+          col(cc).cast("string").alias("error_code"),
+          col(ll).cast("string").alias("error_label")
+        ).distinct()
 
       case _ =>
-        // Tentative Map JSON (si applicable)
+        // Tentative Map JSON
         val first = errorsDF.columns.head
         errorsDF
           .selectExpr(s"explode(map_entries($first)) as kv")
-          .select(col("kv.key").cast("string").alias("error_code"),
-            col("kv.value").cast("string").alias("error_label"))
+          .select(
+            col("kv.key").cast("string").alias("error_code"),
+            col("kv.value").cast("string").alias("error_label")
+          )
           .distinct()
     }
   }
@@ -353,13 +360,11 @@ object TP2SparkFraud {
           txBase.withColumn("error_code_norm", col(ec).cast("string"))
             .join(errorsDF, col("error_code_norm") === errorsDF("error_code"), "left")
             .drop(errorsDF("error_code"))
-
         case _ =>
           txBase.withColumn("error_code_norm", lit(null).cast("string"))
             .withColumn("error_label", lit(null).cast("string"))
       }
 
-    // Top erreurs (si on a des labels)
     if (txWithErrorLabel.columns.contains("error_label")) {
       txWithErrorLabel.filter(col("has_error") === 1)
         .groupBy("error_code_norm", "error_label")
